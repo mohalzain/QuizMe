@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="card">
+
+    <section id="topic-screen" class="screen active">
+      <h1>What do you want to be quizzed on?</h1>
+      <p class="sub">Type any topic and you'll get a question on it.</p>
+      <form id="topic-form">
+        <input id="topic-input" type="text" placeholder="e.g. Linear algebra, Python, World War II" autocomplete="off" required>
+        <button type="submit" class="btn">Start</button>
+      </form>
+      <p id="topic-error" class="error"></p>
+    </section>
+
+    <section id="loading-screen" class="screen">
+      <div class="spinner"></div>
+      <p id="loading-text">Generating your question...</p>
+    </section>
+
+    <section id="question-screen" class="screen">
+      <div class="top-bar">
+        <span id="topic-label" class="tag"></span>
+        <div class="top-right">
+          <span id="question-count" class="count"></span>
+          <button id="new-topic-btn" class="link-btn">New topic</button>
+        </div>
+      </div>
+
+      <h2 id="question-text"></h2>
+
+      <div id="options" class="options"></div>
+
+      <p id="feedback" class="feedback"></p>
+      <button id="next-btn" class="btn hidden">Next question →</button>
+    </section>
+
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
