@@ -1,5 +1,4 @@
-const USE_MOCK = true;                    
-const API_URL = "http://localhost:8000/api";  
+const API_URL = "/api";
 
 
 const screens = {
@@ -22,33 +21,28 @@ const newTopicBtn = document.getElementById("new-topic-btn");
 
 
 let topic = "";
-let questionNumber = 0;
-let currentQuestionId = null;
+let questions = [];  // all questions from the backend
+let current = 0;     // index of the question on screen
 let tries = 0;
 
 
 
-
-async function getQuestion(topic) {
-
-
-  const res = await fetch(API_URL ,{
-    method: "post",
+async function getQuestions(topic) {
+  const res = await fetch(API_URL, {
+    method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ topic: topic }),
   });
-  if (!res.ok) throw new Error("getQuestion failed: " + res.status);
+  if (!res.ok) throw new Error("getQuestions failed: " + res.status);
   return res.json();
 }
 
 
-async function checkAnswer(questionId, answerIndex) {
-  if (USE_MOCK) return mockCheckAnswer(questionId, answerIndex);
-
-  const res = await fetch(API_URL + "/answer", {
+async function checkAnswer(questionIndex, answer) {
+  const res = await fetch("/check-answer-api", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ question_id: questionId, answer: answerIndex }),
+    body: JSON.stringify({ question_index: questionIndex, answer: answer }),
   });
   if (!res.ok) throw new Error("checkAnswer failed: " + res.status);
   return res.json();
@@ -64,49 +58,58 @@ function showScreen(name) {
 
 
 
-topicForm.addEventListener("submit", function (e) {
+topicForm.addEventListener("submit", async function (e) {
   e.preventDefault();
   topic = topicInput.value.trim();
-  if (!topic) {topicInput.value = ''; return;}
+  if (!topic) {
+    topicInput.value = "";
+    return;
+  }
 
   topicError.textContent = "";
-  questionNumber = 0;
-  loadQuestion();
-});
-
-async function loadQuestion() {
   showScreen("loading");
 
   try {
-    const data = await getQuestion(topic);
-    questionNumber++;
-    renderQuestion(data);
+    const data = await getQuestions(topic);
+    questions = data['data']; 
+    console.log(questions[0])
+    current = 0;
+    showQuestion();
     showScreen("question");
   } catch (err) {
     console.error(err);
-    topicError.textContent = "Couldn't load a question. Check the backend and try again.";
+    topicError.textContent = "Couldn't load questions. Check the backend and try again.";
     showScreen("topic");
   }
-}
+});
 
-function renderQuestion(data) {
-  currentQuestionId = data.id;
+function showQuestion() {
+  const q = questions[current];
+  console.log('data: ', q)
+  console.log(q['question'])
+  console.log(q.answers)
   tries = 0;
 
   topicLabel.textContent = topic;
-  questionCount.textContent = "Question " + questionNumber;
-  questionText.textContent = data.question;
+  questionCount.textContent = "Question " + (current + 1) + " of " + questions.length;
+  questionText.textContent = q.question;
 
   feedback.textContent = "";
   feedback.className = "feedback";
   nextBtn.classList.add("hidden");
+
+  if (current === questions.length - 1) {
+    nextBtn.textContent = "Finish";
+  } else {
+    nextBtn.textContent = "Next question →";
+  }
 
   optionsBox.innerHTML = "";
   optionsBox.classList.remove("done");
 
   const letters = ["A", "B", "C", "D"];
 
-  data.options.forEach(function (optionText, index) {
+  q.answers.forEach(function (optionText, index) {
     const btn = document.createElement("button");
     btn.className = "option";
 
@@ -121,23 +124,23 @@ function renderQuestion(data) {
     btn.appendChild(text);
 
     btn.addEventListener("click", function () {
-      handleAnswer(btn, index);
+      handleAnswer(btn, optionText);
     });
 
     optionsBox.appendChild(btn);
   });
 }
 
-async function handleAnswer(btn, index) {
+async function handleAnswer(btn, answer) {
   tries++;
-  setOptionsDisabled(true);       
+  setOptionsDisabled(true); 
   btn.classList.add("checking");
 
   try {
-    const result = await checkAnswer(currentQuestionId, index);
+    const result = await checkAnswer(current, answer);
+    console.log(result)
     btn.classList.remove("checking");
-
-    if (result.correct) {
+    if (result.data == 1) {
       btn.classList.add("correct");
       optionsBox.classList.add("done");
       feedback.textContent = tries === 1 ? "Correct! First try." : "Correct! Got it in " + tries + " tries.";
@@ -147,7 +150,7 @@ async function handleAnswer(btn, index) {
       btn.classList.add("wrong");
       feedback.textContent = "Not quite. Try again.";
       feedback.className = "feedback bad";
-      setOptionsDisabled(false);  
+      setOptionsDisabled(false); 
     }
   } catch (err) {
     console.error(err);
@@ -166,52 +169,18 @@ function setOptionsDisabled(state) {
   });
 }
 
-nextBtn.addEventListener("click", loadQuestion);
+nextBtn.addEventListener("click", function () {
+  current++;
+  if (current < questions.length) {
+    showQuestion();
+  } else {
+    topicInput.value = "";
+    showScreen("topic");
+  }
+});
 
 newTopicBtn.addEventListener("click", function () {
   topicInput.value = "";
   showScreen("topic");
   topicInput.focus();
 });
-
-
-
-
-const MOCK_QUESTIONS = [
-  {
-    id: 1,
-    question: "What is the time complexity of binary search on a sorted array?",
-    options: ["O(n)", "O(log n)", "O(n log n)", "O(1)"],
-    answer: 1,
-  },
-  {
-    id: 2,
-    question: "Which HTTP method is usually used to create a new resource?",
-    options: ["GET", "DELETE", "POST", "HEAD"],
-    answer: 2,
-  },
-  {
-    id: 3,
-    question: "In Python, which of these is immutable?",
-    options: ["list", "dict", "set", "tuple"],
-    answer: 3,
-  },
-];
-
-function mockGetQuestion(topic) {
-  return new Promise(function (resolve) {
-    setTimeout(function () {
-      const q = MOCK_QUESTIONS[questionNumber % MOCK_QUESTIONS.length];
-      resolve({ id: q.id, question: q.question, options: q.options });
-    }, 1200);
-  });
-}
-
-function mockCheckAnswer(questionId, answerIndex) {
-  return new Promise(function (resolve) {
-    setTimeout(function () {
-      const q = MOCK_QUESTIONS.find(function (item) { return item.id === questionId; });
-      resolve({ correct: q.answer === answerIndex });
-    }, 300);
-  });
-}
