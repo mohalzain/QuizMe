@@ -19,8 +19,6 @@ session = {}
 users_so_far = 0
 api = dotenv.get_key("../../.env","OPENAI_API_KEY")
 
-print(api)
-
 LLM = AsyncOpenAI(api_key= api)
 
 
@@ -55,10 +53,10 @@ async def getQuestion(topic):
     except Exception as e:
         print(e)
         data = 'AN ERROR OCCURED'
-        return 'FAILED',data
+        return 'failed',data
     print(data)
     
-    return 'SUCESS',data
+    return 'success',data
 
 
 app.add_middleware(
